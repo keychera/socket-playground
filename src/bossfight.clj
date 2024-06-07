@@ -20,6 +20,8 @@
             ; closing out first before in, because closing in is blocking somehow
             ; https://stackoverflow.com/q/646940/8812880
             ; but I think the solution was to close the stream (need to investigate later)
+            ; it was true https://stackoverflow.com/a/3596072/8812880
+            ; but I think there are better solution
             (some-> out .close)
             (some-> in .close)
             (on-kill)))))
