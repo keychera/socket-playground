@@ -1,1 +1,5 @@
-{:deps {org.clojure/core.async {:mvn/version "1.6.681"}}}
+{:deps {org.clojure/core.async          {:mvn/version "1.6.681"}
+        info.sunng/ring-jetty9-adapter  {:mvn/version "0.18.3"}
+        metosin/reitit                  {:mvn/version "0.5.18"} 
+        javax.servlet/javax.servlet-api {:mvn/version "4.0.1"} ;; this is needed bc one deps breaks w/o this 
+        selmer/selmer                   {:mvn/version "1.12.55"}}}
