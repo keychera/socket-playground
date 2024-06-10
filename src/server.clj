@@ -1,4 +1,4 @@
-(ns bossfight
+(ns server
   (:require [clojure.core.async :refer [thread go alt! chan close!]])
   (:import [java.io BufferedReader InputStreamReader PrintWriter]
            [java.net Socket ServerSocket]))
