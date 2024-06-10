@@ -22,7 +22,8 @@
                                         ;;    (tap> [:ws :open socket])
                                            (swap! <ws-clients> assoc (req->ws-key req) #:ws{:socket socket}))
                                
-                               :on-close (fn [socket status-code reason]
+                               :on-close #_{:clj-kondo/ignore [:unused-binding]}
+                                         (fn [socket status-code reason]
                                         ;;    (tap> [:ws :close socket status-code reason])
                                            (swap! <ws-clients> dissoc (req->ws-key req)))}
      :ring.websocket/protocol (first provided-subprotocols)}))
