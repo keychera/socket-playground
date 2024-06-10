@@ -6,6 +6,7 @@
             [selmer.parser :refer [render-file]]
             [hiccup.core :refer [html]]))
 
+(def <counting?> (atom true))
 (def <counter> (atom 0))
 (def <ws-clients> (atom {}))
 
@@ -46,10 +47,11 @@
   (let [kill-switch-ch (chan)]
     (thread (loop []
               (alt!!
-                (timeout 1000) (do (let [new-value (swap! <counter> inc)]
-                                     (println "counting" new-value)
-                                     (doseq [[_ client] @<ws-clients>]
-                                       (ringws/send (:ws/socket client) (html [:div#counter new-value]))))
+                (timeout 1000) (do (when @<counting?> 
+                                     (let [new-value (swap! <counter> inc)]
+                                       (println "counting" new-value)
+                                       (doseq [[_ client] @<ws-clients>]
+                                         (ringws/send (:ws/socket client) (html [:div#counter new-value])))))
                                    (recur))
                 kill-switch-ch (println "killed counter thread"))))
     kill-switch-ch))
@@ -62,12 +64,13 @@
   (def game-server (create-game-server 4242)) 
   (some-> game-server .stop)
 
+  (def counter-thread (create-counter-thread))
+  (close! counter-thread)
+
+  (swap! <counting?> not)
   @<counter>
   (swap! <counter> inc)
 
   @<ws-clients>
   (doseq [[_ client] @<ws-clients>] 
-    (ringws/send (:ws/socket client) (html [:div#counter @<counter>])))
-
-  (def counter-thread (create-counter-thread))
-  (close! counter-thread))
+    (ringws/send (:ws/socket client) (html [:div#counter @<counter>]))))

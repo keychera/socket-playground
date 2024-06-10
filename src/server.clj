@@ -1,7 +1,8 @@
 (ns server
-  (:require [clojure.core.async :refer [thread go alt! chan close!]])
+  (:require [clojure.core.async :refer [alt! chan close! go thread]]
+            [ui :refer [<counting?>]])
   (:import [java.io BufferedReader InputStreamReader PrintWriter]
-           [java.net Socket ServerSocket]))
+           [java.net ServerSocket Socket]))
 
 (defn client-handler [client-socket {:keys [on-kill]}]
   (let [killed-ch (chan)]
@@ -12,6 +13,7 @@
           (loop []
             (let [ops-ch (go (let [action (try (. in readLine)
                                                (catch Exception e (println "readLine interrupted" (.getMessage e))))]
+                               (swap! <counting?> not)
                                (. out (println (str "doing " action)))))]
               (alt!
                 ops-ch    (recur)
