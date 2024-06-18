@@ -1,6 +1,6 @@
 (ns server
   (:require [clojure.core.async :refer [alt! chan close! go thread]]
-            [ui :refer [<counting?>]])
+            [ui-web :refer [<counting?>]])
   (:import [java.io BufferedReader InputStreamReader PrintWriter]
            [java.net ServerSocket Socket]))
 

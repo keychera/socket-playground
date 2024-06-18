@@ -1,4 +1,4 @@
-(ns ui
+(ns ui-web
   (:require [clojure.core.async :refer [thread alt!! timeout chan close!]]
             [reitit.ring :as ring]
             [ring.adapter.jetty9 :as jetty]
@@ -58,7 +58,8 @@
     kill-switch-ch))
 
 (comment
-  (add-tap (bound-fn* clojure.pprint/pprint))
+  (add-tap #_{:clj-kondo/ignore [:unresolved-namespace]}
+           (bound-fn* clojure.pprint/pprint))
   (add-tap #(def last-tapped-value %))
   last-tapped-value
   
