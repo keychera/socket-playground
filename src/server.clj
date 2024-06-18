@@ -7,14 +7,14 @@
 (defn client-handler [client-socket {:keys [on-kill]}]
   (let [killed-ch (chan)]
     (go
-      (let [out (PrintWriter. (. client-socket getOutputStream) true)
-            in  (BufferedReader. (InputStreamReader. (. client-socket getInputStream)))]
+      (let [out (PrintWriter. (-> client-socket .getOutputStream) true)
+            in  (BufferedReader. (InputStreamReader. (-> client-socket .getInputStream)))]
         (try
           (loop []
-            (let [ops-ch (go (let [action (try (. in readLine)
+            (let [ops-ch (go (let [action (try (-> in .readLine)
                                                (catch Exception e (println "readLine interrupted" (.getMessage e))))]
                                (swap! <counting?> not)
-                               (. out (println (str "doing " action)))))]
+                               (-> out (.println (str "doing " action)))))]
               (alt!
                 ops-ch    (recur)
                 killed-ch :client-killed)))
@@ -35,30 +35,27 @@
         <connected-clients> (atom {})]
     (thread
       (while @<is-running>
-        (let [client-socket      (. server-socket accept)
+        (let [client-socket      (-> server-socket .accept)
               uuid               (random-uuid)
               _ (println "new client:" uuid)
               new-client-handler (client-handler client-socket {:on-kill (fn [] (swap! <connected-clients> #(dissoc % uuid)))})]
           (swap! <connected-clients> #(assoc % uuid new-client-handler)))))
     {:port port :<connected-clients> <connected-clients>
-     :close #(do (doseq [[uuid client] @<connected-clients>]
+     :close #(do (doseq [[uuid client-handler] @<connected-clients>]
                    (println "killing client handler" uuid)
-                   (.invoke (:kill client)))
+                   (.invoke (:kill client-handler)))
                  (reset! <is-running> false)
                  (-> server-socket .close))}))
 
 (defn start-client [ip port]
   (let [client-socket (Socket. ip port)
-        out           (PrintWriter. (. client-socket getOutputStream) true)
-        in            (BufferedReader. (InputStreamReader. (. client-socket getInputStream)))]
-    {:client-socket client-socket :in in :out out
-     :port port
+        out           (PrintWriter. (-> client-socket .getOutputStream) true)
+        in            (BufferedReader. (InputStreamReader. (-> client-socket .getInputStream)))]
+    {:port port
      :send (fn [message]
-             (. out (println message))
-             (. in readLine))
-     :close #(do (some-> in .close)
-                 (some-> out .close)
-                 (some-> client-socket .close))}))
+             (-> out (.println message))
+             (-> in .readLine))
+     :close #(some-> client-socket .close)}))
 
 (comment
   (def server   (start-server 6666))
