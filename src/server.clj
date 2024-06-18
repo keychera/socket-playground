@@ -1,20 +1,25 @@
 (ns server
   (:require [clojure.core.async :refer [alt! chan close! go thread]]
-            [ui-web :refer [<counting?>]])
-  (:import [java.io BufferedReader InputStreamReader PrintWriter]
+            [world :refer [world-tick]])
+  (:import [java.io
+            BufferedReader
+            InputStreamReader
+            ObjectInputStream
+            ObjectOutputStream
+            PrintWriter]
            [java.net ServerSocket Socket]))
 
 (defn client-handler [client-socket {:keys [on-kill]}]
   (let [killed-ch (chan)]
     (go
       (let [out (PrintWriter. (-> client-socket .getOutputStream) true)
-            in  (BufferedReader. (InputStreamReader. (-> client-socket .getInputStream)))]
+            in  (ObjectInputStream. (-> client-socket .getInputStream))]
         (try
           (loop []
-            (let [ops-ch (go (let [action (try (-> in .readLine)
-                                               (catch Exception e (println "readLine interrupted" (.getMessage e))))]
-                               (swap! <counting?> not)
-                               (-> out (.println (str "doing " action)))))]
+            (let [ops-ch (go (let [event (try (-> in .readObject)
+                                              (catch Exception e (println "readLine interrupted" (.getMessage e))))
+                                   result (world-tick event)]
+                               (-> out (.println result))))]
               (alt!
                 ops-ch    (recur)
                 killed-ch :client-killed)))
@@ -49,12 +54,12 @@
 
 (defn start-client [ip port]
   (let [client-socket (Socket. ip port)
-        out           (PrintWriter. (-> client-socket .getOutputStream) true)
+        out           (ObjectOutputStream. (-> client-socket .getOutputStream))
         in            (BufferedReader. (InputStreamReader. (-> client-socket .getInputStream)))]
     {:port port
-     :send (fn [message]
-             (-> out (.println message))
-             (-> in .readLine))
+     :damage-boss (fn [damage]
+                    (-> out (.writeObject {:type :damage-boss :data {:damage damage}}))
+                    (-> in .readLine))
      :close #(some-> client-socket .close)}))
 
 (comment
@@ -62,8 +67,10 @@
   (def client   (start-client "127.0.0.1" 6666))
   (def client-2 (start-client "127.0.0.1" 6666))
 
-  (.invoke (:send client) "stuff")
-  (.invoke (:send client-2) "something")
+  @world/<world>
+
+  (.invoke (:damage-boss client) 5)
+  (.invoke (:damage-boss client-2) 7)
 
   (-> server :<connected-clients>)
 
